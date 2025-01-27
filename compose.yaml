@@ -1,7 +1,7 @@
 services:
-  web:
+  app:
     build:
       context: app
       target: builder
     ports:
-      - '9574:9574'
+      - '9457:9457'
