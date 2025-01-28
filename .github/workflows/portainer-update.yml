@@ -1,8 +1,11 @@
 name: Portainer Update Container
 
 on: 
-  push:
-    branches: ["main"]
+  workflow_run:
+    workflows: [ "Docker" ]
+    types:
+      - completed
+    
 
 jobs:
   update:
