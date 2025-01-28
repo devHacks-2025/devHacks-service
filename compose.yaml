@@ -1,7 +1,6 @@
 services:
-  app:
-    build:
-      context: app
-      target: builder
+  devhacks-service:
+    image: ghcr.io/devhacks-2025/devhacks-service:main
     ports:
+
       - '9457:9457'
