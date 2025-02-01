@@ -2,7 +2,7 @@ name: Portainer Update Container
 
 on: 
   workflow_run:
-    workflows: [ "Docker" ]
+    workflows: [ "Docker - Registration Service", "Docker - Team Service", "Docker - Checkin Service" ]
     types:
       - completed
     
