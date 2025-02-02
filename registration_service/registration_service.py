@@ -126,7 +126,7 @@ def send_to_discord(attendee):
 def send_email(attendee):
     s = smtplib.SMTP('smtp.gmail.com', 587)
     s.starttls()
-    s.login(DEVCLUB_EMAIL, os.environ["gmail_pass"])
+    s.login(DEVCLUB_EMAIL, os.environ["GOOGLE_APP_PASS"])
 
     with open("static/styles/style.css", "r") as fil:
         css = fil.read()
