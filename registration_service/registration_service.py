@@ -102,7 +102,6 @@ def create_and_send_ticket(full_form_data):
         traceback.print_exception(e)
         return "Something went Wrong", 503
 
-
 def send_to_discord(attendee):
     url = env.get("DISCORD_WEBHOOK_URL")
     header = {
