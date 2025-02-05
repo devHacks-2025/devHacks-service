@@ -7,7 +7,7 @@ from flask import Flask, request
 from notion_client import Client
 
 env = json.load(open("../env.json"))
-notion = Client(auth=env.get("NOTION_TOKEN"), log_level=logging.DEBUG)
+notion = Client(auth=os.environ["NOTION_TOKEN"], log_level=logging.DEBUG)
 timeout = 1
 app = Flask(__name__)
 
