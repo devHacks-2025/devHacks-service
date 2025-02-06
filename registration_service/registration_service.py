@@ -21,8 +21,7 @@ DEVCLUB_EMAIL = "umdevclub@gmail.com"
 
 app = Flask(__name__)
 CORS(app)
-env = json.load(open("../env.json"))
-notion = Client(auth=os.environ["NOTION_TOKEN"], log_level=logging.DEBUG)
+notion = Client(auth=os.environ["NOTION_KEY"], log_level=logging.DEBUG)
 
 
 @app.route('/')
