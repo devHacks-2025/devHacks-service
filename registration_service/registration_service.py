@@ -1,4 +1,3 @@
-import json
 import logging
 import smtplib
 import sys
@@ -15,14 +14,14 @@ import requests as requests
 import segno
 from flask import Flask, request, Response, url_for
 from attendee import Attendee
-from notion_client import Client
+from notion_client import Client, APIResponseError, APIErrorCode
 
 DEVCLUB_EMAIL = "umdevclub@gmail.com"
 
 app = Flask(__name__)
 CORS(app)
 notion = Client(auth=os.environ["NOTION_KEY"], log_level=logging.DEBUG)
-
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 @app.route('/')
 def hello_world():
@@ -32,30 +31,28 @@ def hello_world():
 def register():
     full_form_data = request.get_json()  # Webhook Data
     r = create_and_send_ticket(full_form_data)
-    print(r)
+    logging.debug(r)
     return r
 
 @app.route('/api/v25/tickets/<ticket_id>', methods=["GET"])
 def get_qr_code(ticket_id: str):
     qr = segno.make_qr(ticket_id)
     b = io.BytesIO()
-    qr.save(b, kind="png", scale=6)
+    qr.save(b, kind="png", scale=10)
     return Response(b.getvalue(), mimetype='image/png')
 
 # Registrants are stored as pages in a Notion database
 @app.route('/api/v25/tickets/<notion_page_id>', methods=["POST"])
-def resend_qr_code(notion_page_id):
-    reg_page = notion.pages.retrieve(notion_page_id)
-    print(json.dumps(reg_page.json(), indent=4))
+def resend_qr_code(notion_page_id: str):
+    logging.info(f"Received request for page: {notion_page_id}")
 
+    try:
+        reg_page = notion.pages.retrieve(notion_page_id)
+        logging.info(f"Retrieved Page: {reg_page}\n")
 
-    if reg_page.status_code == 404:
-        return "404 ID Not Found", 404
-    elif reg_page.status_code == 400 or reg_page.status_code == 429:
-        return "429 Rate Limited"
-    else:
-        info = reg_page.json().get("properties")
+        info = reg_page.get("properties")
         attendee = Attendee()
+
         attendee.ticket_id = info.get("Ticket ID").get("title")[0].get("plain_text")
         attendee.first_name = info.get("First Name").get("rich_text")[0].get("plain_text")
         attendee.last_name = info.get("Last Name").get("rich_text")[0].get("plain_text")
@@ -67,7 +64,18 @@ def resend_qr_code(notion_page_id):
         attendee.preferred_name = preferred_name
 
         send_email(attendee)
+        confirm_qr(reg_page.get('id'))
         return "Successfully Sent Email", 200
+    except APIResponseError as error:
+        if error.code == APIErrorCode.ObjectNotFound:
+            return "404 ID Not Found", 404
+        elif APIErrorCode.InvalidRequest == 400 or APIErrorCode.RateLimited == 429:
+            return "429 Rate Limited", 429
+        else:
+            return "Sorry, something happened on our side.", 500
+    
+def confirm_qr(page_id):
+    notion.pages.update(page_id, properties={ 'QR Sent': { 'checkbox': True }})
 
 def create_and_send_ticket(full_form_data):
     try:
@@ -119,7 +127,7 @@ def send_to_discord(attendee):
                        f"but something went wrong.\nEmail: `{attendee.email}`"
         }
     r = requests.post(url, headers=header, data=body)
-    print(f"{r.status_code} {r.reason}")
+    logging.info(f"{r.status_code} {r.reason}")
 
 
 def send_email(attendee):
@@ -130,7 +138,7 @@ def send_email(attendee):
     with open("static/styles/style.css", "r") as fil:
         css = fil.read()
 
-    with open("templates/email.html", 'r') as f:
+    with open("static/templates/email.html", 'r') as f:
         text = f.read()
         template = jinja2.Template(text)
     content = template.render(attendee=attendee, css=css)
@@ -143,7 +151,7 @@ def send_email(attendee):
 
     qr = attendee.ticket_qr()
     b = io.BytesIO()
-    qr.save(b, kind="png", scale=6)
+    qr.save(b, kind="png", scale=10)
 
     image = MIMEImage(b.getvalue(), Name=f"{attendee.ticket_id}.png", _subtype="png")
     image.add_header('Content-ID', attendee.ticket_id)
