@@ -1,6 +1,7 @@
 import logging
 import smtplib
 import sys
+import time
 import traceback
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -80,6 +81,30 @@ def resend_qr_code(notion_page_id: str):
 # for each page in db, get the page id
 # if page.QR SEnt is false, call resend_qr_code with page id
 # sleep for 5 seconds
+
+@app.route('/api/v25/tickets/resend-all', methods=["POST"])
+def resend_all():
+    try:
+        database_id = os.environ["NOTION_DATABASE_ID"]
+        results = notion.databases.query(database_id=database_id).get("results", [])
+        
+        for page in results:
+            page_id = page.get("id")
+            qr_sent = page.get("properties").get("QR Sent").get("checkbox", False)
+            
+            if not qr_sent:
+                logging.info(f"Resending QR code for page: {page_id}")
+                resend_qr_code(page_id)
+                time.sleep(5)  
+
+        return "Successfully resent QR codes where necessary", 200
+    except Exception as e:
+        logging.error(f"Error in resending QR codes: {str(e)}")
+        return "Internal Server Error", 500
+
+ 
+
+ 
 
     
 def confirm_qr(page_id):
