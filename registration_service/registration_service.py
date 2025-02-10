@@ -73,6 +73,14 @@ def resend_qr_code(notion_page_id: str):
             return "429 Rate Limited", 429
         else:
             return "Sorry, something happened on our side.", 500
+
+# TODO BUILD RESEND ALL ENDPOINT
+# resend all
+# get notion db
+# for each page in db, get the page id
+# if page.QR SEnt is false, call resend_qr_code with page id
+# sleep for 5 seconds
+
     
 def confirm_qr(page_id):
     notion.pages.update(page_id, properties={ 'QR Sent': { 'checkbox': True }})
