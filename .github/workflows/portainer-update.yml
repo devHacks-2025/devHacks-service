@@ -1,0 +1,20 @@
+name: Portainer Update Container
+
+on: 
+  workflow_run:
+    workflows: [ "Docker - Registration Service", "Docker - Team Service", "Docker - Checkin Service" ]
+    types:
+      - completed
+    
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Portainer Service Webhook
+      # You may pin to the exact commit or the version.
+      # uses: newarifrh/portainer-service-webhook@b6ec54b0c9d76cc7317fde47318a48f4553ebf1b
+        uses: newarifrh/portainer-service-webhook@v1
+        with:
+        # Put service webhook url in here (example: http://example.com:9000/api/webhooks/dab4a378-57d0-4fef-a93a-6f5de18a5083)
+          webhook_url: https://portainer.khathepham.com/api/stacks/webhooks/0ccc1d02-2c19-4656-8000-90a43a2e13c7

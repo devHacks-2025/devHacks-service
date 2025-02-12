@@ -1,0 +1,13 @@
+services:
+  registration-service:
+    image: ghcr.io/devhacks-2025/registration-service:main
+    ports:
+      - '9457:9457'
+  checkin-service:
+    image: ghcr.io/devhacks-2025/checkin-service:main
+    ports:
+      - '9458:9458'
+  team-service:
+    image: ghcr.io/devhacks-2025/team-service:main
+    ports:
+      - '9459:9459'
