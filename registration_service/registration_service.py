@@ -16,6 +16,8 @@ import segno
 from flask import Flask, request, Response, url_for
 from attendee import Attendee
 from notion_client import Client, APIResponseError, APIErrorCode
+from dotenv import load_dotenv
+load_dotenv("/home/spiderman/Documents/devHacks-service/registration_service/stack.env")
 
 DEVCLUB_EMAIL = "umdevclub@gmail.com"
 
@@ -80,27 +82,45 @@ def resend_qr_code(notion_page_id: str):
 # get notion db
 # for each page in db, get the page id
 # if page.QR SEnt is false, call resend_qr_code with page id
-# sleep for 5 seconds
+# sleep for 0.5 seconds
 
 @app.route('/api/v25/tickets/resend-all', methods=["POST"])
 def resend_all():
     try:
         database_id = os.environ["NOTION_DATABASE_ID"]
-        results = notion.databases.query(database_id=database_id).get("results", [])
-        
-        for page in results:
-            page_id = page.get("id")
-            qr_sent = page.get("properties").get("QR Sent").get("checkbox", False)
-            
-            if not qr_sent:
-                logging.info(f"Resending QR code for page: {page_id}")
-                resend_qr_code(page_id)
-                time.sleep(5)  
+        count = 0
+        next_page = None  
 
-        return "Successfully resent QR codes where necessary", 200
+        while True:  # Loop until there are no more pages
+            database_parameters = {"database_id": database_id}
+            if next_page:
+                database_parameters["start_cursor"] = next_page
+
+            response = notion.databases.query(**database_parameters)  
+            results = response.get("results", [])
+
+            for page in results:
+                page_id = page.get("id")
+                qr_sent = page.get("properties").get("QR Sent", {}).get("checkbox", False)
+
+                count += 1  
+                if not qr_sent:
+                    logging.info(f"Would resend QR code for page: {page_id}")
+                    # resend_qr_code(page_id)
+                    time.sleep(0.5)  
+
+            next_page = response.get("next_cursor")  
+            if not next_page:  
+                break
+
+        logging.info(f"Total attendees processed: {count}")
+        return f"Test completed. {count} attendees processed", 200
+
     except Exception as e:
         logging.error(f"Error in resending QR codes: {str(e)}")
         return "Internal Server Error", 500
+
+    
 
  
 
