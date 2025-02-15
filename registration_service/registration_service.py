@@ -16,8 +16,8 @@ import segno
 from flask import Flask, request, Response, url_for
 from attendee import Attendee
 from notion_client import Client, APIResponseError, APIErrorCode
-# from dotenv import load_dotenv
-# load_dotenv("devHacks-service/registration_service/stack.env")
+from dotenv import load_dotenv
+load_dotenv("/home/spiderman/Documents/devHacks-service/registration_service/stack.env")
 
 DEVCLUB_EMAIL = "umdevclub@gmail.com"
 
@@ -103,11 +103,12 @@ def resend_all():
                 page_id = page.get("id")
                 qr_sent = page.get("properties").get("QR Sent", {}).get("checkbox", False)
 
-                count += 1  
-                if not qr_sent:
+                
+                if  not qr_sent:
                     logging.info(f"Would resend QR code for page: {page_id}")
-                    resend_qr_code(page_id)
-                    confirm_qr(page_id)
+                    count += 1  
+                    # resend_qr_code(page_id)
+                    # confirm_qr(page_id)
                     time.sleep(0.5)  
 
             next_page = response.get("next_cursor")  
@@ -115,7 +116,7 @@ def resend_all():
                 break
 
         logging.info(f"Total attendees processed: {count}")
-        return f"Test completed. {count} attendees processed. Emails Sent", 200
+        return f"Test completed. {count} attendees processed.", 200
 
     except Exception as e:
         logging.error(f"Error in resending QR codes: {str(e)}")
@@ -166,7 +167,7 @@ def send_to_discord(attendee):
             "content": f"{attendee.first_name} {attendee.last_name} has registered!\n"
                        f"Email: `{attendee.email}`\n"
                        f"Ticket Number: `{attendee.ticket_id}`\n"
-                       f"Ticket Barcode: [link](https://devhacks2024.khathepham.com{url_for('qr_code', ticket_id=attendee.ticket_id)})"
+                       f"Ticket Barcode: [link](https://devhacks2024.khathepham.com{url_for('get_qr_code', ticket_id=attendee.ticket_id)})"
         }
     else:
         body = {
