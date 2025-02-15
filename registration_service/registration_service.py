@@ -182,13 +182,10 @@ def send_email(attendee):
     s.starttls()
     s.login(DEVCLUB_EMAIL, os.environ["GOOGLE_APP_PASS"])
 
-    with open("static/styles/style.css", "r") as fil:
-        css = fil.read()
-
     with open("static/templates/email.html", 'r') as f:
         text = f.read()
         template = jinja2.Template(text)
-    content = template.render(attendee=attendee, css=css)
+    content = template.render(attendee=attendee)
 
     message = MIMEMultipart()
     message.attach(MIMEText(content, 'html'))
