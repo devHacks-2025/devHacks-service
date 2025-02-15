@@ -16,8 +16,8 @@ import segno
 from flask import Flask, request, Response, url_for
 from attendee import Attendee
 from notion_client import Client, APIResponseError, APIErrorCode
-from dotenv import load_dotenv
-load_dotenv("/home/spiderman/Documents/devHacks-service/registration_service/stack.env")
+# from dotenv import load_dotenv
+# load_dotenv("/home/spiderman/Documents/devHacks-service/registration_service/stack.env")
 
 DEVCLUB_EMAIL = "umdevclub@gmail.com"
 
