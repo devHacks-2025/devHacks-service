@@ -135,13 +135,9 @@ def create_and_send_ticket(full_form_data):
         attendee.ticket_id = full_form_data["data"]["responseId"]
         attendee.first_name = questions[0]["value"]
         attendee.last_name = questions[1]["value"]
-        attendee.preferred_name = questions[2]["value"]
+        attendee.preferred_name = questions[5].get("value", attendee.first_name)
 
-        # Set preferred email as default if available
-        if questions[10]["value"]: # from 4 to 10
-            attendee.email = questions[9]["value"] #from 3 to 9
-        else:
-            attendee.email = questions[11]["value"] #from 6 to 11
+        attendee.email = questions[13].get("value", questions[10]["value"])
 
         # Create Ticket
         send_to_discord(attendee)
