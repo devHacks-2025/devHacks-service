@@ -16,8 +16,6 @@ import segno
 from flask import Flask, request, Response, url_for
 from attendee import Attendee
 from notion_client import Client, APIResponseError, APIErrorCode
-# from dotenv import load_dotenv
-# load_dotenv("/home/spiderman/Documents/devHacks-service/registration_service/stack.env")
 
 DEVCLUB_EMAIL = "umdevclub@gmail.com"
 
@@ -77,13 +75,6 @@ def resend_qr_code(notion_page_id: str):
         else:
             return "Sorry, something happened on our side.", 500
 
-# TODO BUILD RESEND ALL ENDPOINT
-# resend all
-# get notion db
-# for each page in db, get the page id
-# if page.QR SEnt is false, call resend_qr_code with page id
-# sleep for 0.5 seconds
-
 @app.route('/api/v25/tickets/resend-all', methods=["POST"])
 def resend_all():
     try:
@@ -135,9 +126,14 @@ def create_and_send_ticket(full_form_data):
         attendee.ticket_id = full_form_data["data"]["responseId"]
         attendee.first_name = questions[0]["value"]
         attendee.last_name = questions[1]["value"]
-        attendee.preferred_name = questions[5].get("value", attendee.first_name)
 
-        attendee.email = questions[13].get("value", questions[10]["value"])
+        for question in questions:
+            if question["key"] == "question_QMxv0X" and question.get("value"):
+                attendee.preferred_name = question.get("value")
+            if question["key"] == "question_AzGkvo":
+                attendee.email = question.get("value")
+            if question["key"] == "question_AK6Aly" and question.get("value"):
+                attendee.email = question.get("value")
 
         # Create Ticket
         send_to_discord(attendee)
