@@ -113,6 +113,30 @@ def resend_all():
         logging.error(f"Error in resending QR codes: {str(e)}")
         return "Internal Server Error", 500
 
+def get_total_registered_count():
+    database_id = os.environ["NOTION_DATABASE_ID"]
+    total_count = 0
+    next_cursor = None
+
+    while True:
+        database_parameters = {"database_id": database_id}
+        if next_cursor:
+            database_parameters["start_cursor"] = next_cursor
+
+        response = notion.databases.query(**database_parameters)
+        results = response.get("results", [])
+
+        # Count each individual registrant
+        for page in results:
+            total_count += 1
+
+        next_cursor = response.get("next_cursor")
+        if not next_cursor:
+            break
+
+    return total_count
+
+
 def confirm_qr(page_id):
     notion.pages.update(page_id, properties={ 'QR Sent': { 'checkbox': True }})
 
@@ -154,12 +178,14 @@ def send_to_discord(attendee):
     header = {
         "Accept": "application/json"
     }
+    total_registered= get_total_registered_count()
     if attendee.ticket_id:
         body = {
             "content": f"{attendee.first_name} {attendee.last_name} has registered!\n"
                        f"Email: `{attendee.email}`\n"
                        f"Ticket Number: `{attendee.ticket_id}`\n"
                        f"Ticket Barcode: [link](https://devhacksapi.khathepham.com{url_for('get_qr_code', ticket_id=attendee.ticket_id)})"
+                       f"Total Registrations: `{total_registered+1}`"
         }
     else:
         body = {
