@@ -184,8 +184,8 @@ def send_to_discord(attendee):
             "content": f"{attendee.first_name} {attendee.last_name} has registered!\n"
                        f"Email: `{attendee.email}`\n"
                        f"Ticket Number: `{attendee.ticket_id}`\n"
-                       f"Ticket Barcode: [link](https://devhacksapi.khathepham.com{url_for('get_qr_code', ticket_id=attendee.ticket_id)})"
-                       f"Total Registrations: `{total_registered+1}`"
+                       f"Ticket Barcode: [link](https://devhacksapi.khathepham.com{url_for('get_qr_code', ticket_id=attendee.ticket_id)})\n"
+                       f"Total Registrations: `{total_registered}`"
         }
     else:
         body = {
