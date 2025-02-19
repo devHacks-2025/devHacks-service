@@ -178,14 +178,14 @@ def send_to_discord(attendee):
     header = {
         "Accept": "application/json"
     }
-   # total_registered= get_total_registered_count()
+   
     if attendee.ticket_id:
         body = {
             "content": f"{attendee.first_name} {attendee.last_name} has registered!\n"
                        f"Email: `{attendee.email}`\n"
                        f"Ticket Number: `{attendee.ticket_id}`\n"
                        f"Ticket Barcode: [link](https://devhacksapi.khathepham.com{url_for('get_qr_code', ticket_id=attendee.ticket_id)})"
-                   #    f"Total Registrations: `{total_registered}`"
+                   
         }
     else:
         body = {
@@ -194,7 +194,17 @@ def send_to_discord(attendee):
         }
     r = requests.post(url, headers=header, data=body)
     logging.info(f"{r.status_code} {r.reason}")
+    
+    try:
+        total_registered = get_total_registered_count()
+        count_body = {
+            "content": f"**Total Registrations:** `{total_registered}`"
+        }
 
+        count_response = requests.post(url, headers=header, data=count_body)
+        logging.info(f"Count Message: {count_response.status_code} {count_response.reason}")
+    except Exception as e:
+        logging.error(f"Error retrieving total registrations: {str(e)}")
 
 def send_email(attendee):
     s = smtplib.SMTP('smtp.gmail.com', 587)
