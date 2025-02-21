@@ -1,13 +1,13 @@
 import json
 import logging
 import time
+import os
 
 from enum import Enum
 from flask import Flask, request
 from notion_client import Client
 
-env = json.load(open("../env.json"))
-notion = Client(auth=os.environ["NOTION_TOKEN"], log_level=logging.DEBUG)
+notion = Client(auth=os.environ["NOTION_KEY"], log_level=logging.DEBUG)
 timeout = 1
 app = Flask(__name__)
 
