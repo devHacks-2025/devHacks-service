@@ -5,11 +5,13 @@ import os
 
 from enum import Enum
 from flask import Flask, request
+from flask_cors import CORS
 from notion_client import Client, APIResponseError, APIErrorCode
 
 notion = Client(auth=os.environ["NOTION_KEY"], log_level=logging.DEBUG)
 timeout = 1
 app = Flask(__name__)
+CORS(app)
 
 class Day(Enum):
     FRIDAY = "Friday"
