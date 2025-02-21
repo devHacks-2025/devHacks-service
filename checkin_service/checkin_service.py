@@ -11,6 +11,8 @@ from notion_client import Client, APIResponseError, APIErrorCode
 notion = Client(auth=os.environ["NOTION_KEY"], log_level=logging.DEBUG)
 timeout = 1
 app = Flask(__name__)
+gunicorn_logger = logging.getLogger('gunicorn.error')
+app.logger.handlers = gunicorn_logger.handlers
 app.logger.setLevel(logging.DEBUG)
 CORS(app)
 
