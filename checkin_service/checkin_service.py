@@ -166,7 +166,7 @@ def get_ticket(ticket_id):
                 page_size=1
             )
 
-            data = result.json().get("results", [None])
+            data = result.get("results", [])
             if len(data) == 0:
                 return None
             return data[0]
