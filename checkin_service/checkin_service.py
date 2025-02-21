@@ -5,7 +5,7 @@ import os
 
 from enum import Enum
 from flask import Flask, request
-from notion_client import Client
+from notion_client import Client, APIResponseError, APIErrorCode
 
 notion = Client(auth=os.environ["NOTION_KEY"], log_level=logging.DEBUG)
 timeout = 1
@@ -155,25 +155,27 @@ def checkin_meal_notion_request(page_id, day, meal):
 
 def get_ticket(ticket_id):
     while True:
-        result = notion.databases.query(os.environ["NOTION_DATABASE_ID"],
-            filter={
-                "property": "Ticket ID",
-                "rich_text": {
-                    "contains": ticket_id
-                }
-            },
-            page_size=1
-        )
-        if result.status_code == 200:
+        try:
+            result = notion.databases.query(os.environ["NOTION_DATABASE_ID"],
+                filter={
+                    "property": "Ticket ID",
+                    "rich_text": {
+                        "contains": ticket_id
+                    }
+                },
+                page_size=1
+            )
+
             data = result.json().get("results", [None])
             if len(data) == 0:
                 return None
             return data[0]
-        elif result.status_code == 429:
-            wait_time = result.headers.get("Retry-After")
-            time.sleep(wait_time)
-        else:
-            return None
+        except APIResponseError as error:
+            if error.code == APIErrorCode.RateLimited:
+                wait_time = result.headers.get("Retry-After")
+                time.sleep(wait_time)
+            else:
+                return None
 
 if __name__ == "__main__":
     app.run()
