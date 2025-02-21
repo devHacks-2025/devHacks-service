@@ -37,7 +37,7 @@ def check_in_attendee():
             meal_enum = Meal(meal)
     except ValueError:
         return "Invalid Meal", 400
-
+    logging.DEBUG(f"Attempting to check in attendee {ticket_code}, {day}, {meal_enum}")
     if not ticket_code or not day_enum:
         return "Bad Request", 400
     elif meal_enum:
