@@ -38,12 +38,10 @@ def check_in_attendee():
     except KeyError:
         return "Invalid Meal", 400
 
-    if not ticket_code and not day_enum:
-        return "Bad Request", 400
-    elif meal_enum is not None and info.get("mealGroups", None) is None:
+    if not ticket_code or not day_enum:
         return "Bad Request", 400
     elif meal_enum:
-        checkin_result = meal_checkin(ticket_code, day_enum, meal_enum, info.get("mealGroups"))
+        checkin_result = verify(ticket_code, day_enum, meal_enum)
         if checkin_result["success"]:
             return checkin_result["status"], 200
         elif checkin_result["warning"]:
@@ -56,7 +54,6 @@ def check_in_attendee():
             return checkin_result["status"], 400
         else:
             return checkin_result["status"], 200
-
 
 @app.route("/api/v25/checkin/<ticket_code>", methods=["GET"])
 def get_attendee(ticket_code):
@@ -76,13 +73,13 @@ def checkin(ticket_id: str, day: Day):
 
     if ticket:
         return_val["ticket"] = ticket
-        is_checked_in = ticket["properties"][f"Checked In - {day.value}"]["checkbox"]
+        is_checked_in = ticket["properties"][f"Checked In"]["checkbox"]
         first_name = ticket['properties']['First Name']['rich_text'][0]['plain_text']
         last_name = ticket['properties']['Last Name']['rich_text'][0]['plain_text']
 
         if not is_checked_in:
             while rate_limited:
-                r = checkin_notion_request(ticket["id"], day)
+                r = checkin_notion_request(ticket["id"])
 
                 if r["object"] and not r["object"] == "error":
                     print(json.dumps(r, indent=4, sort_keys=True))
@@ -109,8 +106,7 @@ def checkin(ticket_id: str, day: Day):
         return_val["ticket"] = None
     return return_val
 
-
-def meal_checkin(ticket_id: str, day: Day, meal: Meal, meal_groups):
+def verify(ticket_id: str, day: Day, meal: Meal):
     ticket = get_ticket(ticket_id)
     rate_limited = True
     return_val = {"success": False, "warning": False}
@@ -120,7 +116,7 @@ def meal_checkin(ticket_id: str, day: Day, meal: Meal, meal_groups):
         return_val["ticket"] = None
     else:
         return_val["ticket"] = ticket
-        is_checked_in = ticket["properties"][f"{day.value} {meal.value} Redeemed"]["checkbox"]
+        is_checked_in = ticket["properties"][f"{day.value} {meal.value} Verified"]["checkbox"]
         first_name = ticket['properties']['First Name']['rich_text'][0]['plain_text']
         last_name = ticket['properties']['Last Name']['rich_text'][0]['plain_text']
 
@@ -130,65 +126,36 @@ def meal_checkin(ticket_id: str, day: Day, meal: Meal, meal_groups):
             print(msg)
         else:
             while rate_limited:
-                if ticket['properties']['Meal Group']['select'] is None:
-                    return_val["status"] = (f"{first_name} {last_name} has not been placed in a meal group, as they "
-                                            f"are not registered in any team. Please notify ticket-holder that they "
-                                            f"must be an active participant of .devHacks for food during the event.")
-                    return_val["warning"] = True
+                r = checkin_meal_notion_request(ticket["id"], day, meal)
+
+                if r["object"] and not r["object"] == "error":
+                    print(json.dumps(r, indent=4, sort_keys=True))
+                    print(f"Successfully redeemed {first_name} {last_name} with ticket {ticket_id}!")
+                    return_val[
+                        "status"] = f"Successfully redeemed {first_name} {last_name} with ticket {ticket_id} for {day.value} {meal.value}!"
+                    return_val["success"] = True
                     rate_limited = False
-                elif not correct_meal_group(ticket, meal_groups):
-                    return_val["status"] = (f"{first_name} {last_name} is not in this meal group. Please ask them to wait until"
-                                            f"their group ({ticket['properties']['Meal Group']['select']['name']}) is called.")
-                    return_val["warning"] = True
-                    rate_limited = False
+                elif r.get("object") == "error" and r.get("status") == 429:
+                    print(f"Rate Limited - Retrying in {timeout} second(s)...")
+                    time.sleep(timeout)
                 else:
-                    r = checkin_meal_notion_request(ticket["id"], day, meal)
+                    print(
+                        f"Something went wrong trying to check in {first_name} {last_name} - {r.get('status', 400)} {r.get('message', '')}")
+                    return_val[
+                        "status"] = f"Something went wrong trying to redeem {first_name} {last_name} - {r.get('status', 400)} {r.get('message', '')}!"
 
-                    if r["object"] and not r["object"] == "error":
-                        print(json.dumps(r, indent=4, sort_keys=True))
-                        print(f"Successfully redeemed {first_name} {last_name} with ticket {ticket_id}!")
-                        return_val[
-                            "status"] = f"Successfully redeemed {first_name} {last_name} with ticket {ticket_id} for {day.value} {meal.value}!"
-                        return_val["success"] = True
-                        rate_limited = False
-                    elif r.get("object") == "error" and r.get("status") == 429:
-                        print(f"Rate Limited - Retrying in {timeout} second(s)...")
-                        time.sleep(timeout)
-                    else:
-                        print(
-                            f"Something went wrong trying to check in {first_name} {last_name} - {r.get('status', 400)} {r.get('message', '')}")
-                        return_val[
-                            "status"] = f"Something went wrong trying to redeem {first_name} {last_name} - {r.get('status', 400)} {r.get('message', '')}!"
-
-                        rate_limited = False
+                    rate_limited = False
     return return_val
 
-
-def correct_meal_group(attendee, meal_groups):
-    if attendee["properties"]["Meal Group"]["select"] is not None:
-        return attendee["properties"]["Meal Group"]["select"]["name"] in meal_groups
-    return False
-
-
-def checkin_notion_request(page_id, day):
-    return notion.pages.update(page_id, 
-        properties={
-            f"Checked In - {day.value}": True
-        }
-    )
-
+def checkin_notion_request(page_id):
+    return notion.pages.update(page_id, properties={ 'Checked In': { 'checkbox': True }})
 
 def checkin_meal_notion_request(page_id, day, meal):
-    return notion.pages.update(page_id,
-        properties={
-            f"{day.value} {meal.value} Redeemed": True
-        }
-    )
-
+    return notion.pages.update(page_id, properties={f'{day.value} {meal.value} Verified': { 'checkbox': True }})
 
 def get_ticket(ticket_id):
     while True:
-        result = notion.databases.query(notion_db,
+        result = notion.databases.query(os.environ["NOTION_DATABASE_ID"],
             filter={
                 "property": "Ticket ID",
                 "rich_text": {
