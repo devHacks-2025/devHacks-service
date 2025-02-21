@@ -27,7 +27,7 @@ def check_in_attendee():
     day = info.get("day", None)
     try:
         day_enum = Day(day)
-    except KeyError:
+    except ValueError:
         return "Invalid Day", 400
 
     meal = info.get("meal", None)
@@ -35,7 +35,7 @@ def check_in_attendee():
     try:
         if meal is not None:
             meal_enum = Meal(meal)
-    except KeyError:
+    except ValueError:
         return "Invalid Meal", 400
 
     if not ticket_code or not day_enum:
@@ -61,7 +61,7 @@ def get_attendee(ticket_code):
     if attendee:
         return attendee
     else:
-        return "Bad Request", 400
+        return "Not Found", 404
 
 
 def checkin(ticket_id: str, day: Day):
