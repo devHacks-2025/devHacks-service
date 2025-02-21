@@ -28,6 +28,8 @@ class Meal(Enum):
 @app.route("/api/v25/checkin", methods=["POST"])
 def check_in_attendee():
     info = request.get_json()
+    app.logger.debug(info)
+    
     ticket_code = info.get("ticketCode", None)
     day = info.get("day", None)
     try:
